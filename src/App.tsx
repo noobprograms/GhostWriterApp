@@ -1,51 +1,112 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export default function App() {
+  const [file, setFile] = useState<File | null>(null)
+  const [script, setScript] = useState("")
+  const [style, setStyle] = useState("ghost")
+  const [progress, setProgress] = useState(0)
+  const [loading, setLoading] = useState(false)
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setFile(e.target.files[0])
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (!file) return alert("Upload a file first")
+
+    setLoading(true)
+    setProgress(10)
+
+    // later → call tauri invoke here
+    setTimeout(() => setProgress(40), 500)
+    setTimeout(() => setProgress(70), 1000)
+    setTimeout(() => {
+      setProgress(100)
+      setLoading(false)
+    }, 2000)
   }
 
   return (
-    <main className="container">
-      <h1 className="text-amber-300">Welcome to Tauri + React</h1>
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+      <Card className="w-full max-w-2xl bg-neutral-900 border-neutral-800">
+        <CardContent className="space-y-6 p-6">
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+          {/* Title */}
+          <h1 className="text-2xl font-semibold tracking-tight">
+            GhostText Studio
+          </h1>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+          {/* Upload */}
+          <div className="space-y-2">
+            <label className="text-sm text-neutral-400">
+              Upload Video / Image
+            </label>
+            <Input
+              type="file"
+              accept="video/*,image/*"
+              onChange={handleFileChange}
+              className="bg-neutral-800 border-neutral-700"
+            />
+          </div>
+
+          {/* Script */}
+          <div className="space-y-2">
+            <label className="text-sm text-neutral-400">
+              Script (with timing)
+            </label>
+            <Textarea
+              placeholder={`[2.0] I shouldn't be here...\n[5.0] but I had to come.`}
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+              className="bg-neutral-800 border-neutral-700 min-h-[120px]"
+            />
+          </div>
+
+          {/* Style */}
+          <div className="space-y-2">
+            <label className="text-sm text-neutral-400">Style</label>
+            <Select value={style} onValueChange={setStyle}>
+              <SelectTrigger className="bg-neutral-800 border-neutral-700">
+                <SelectValue placeholder="Select style" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ghost">Ghost</SelectItem>
+                <SelectItem value="clean">Clean</SelectItem>
+                <SelectItem value="horror">Horror</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Progress */}
+          {loading && (
+            <Progress value={progress} className="h-2 bg-neutral-800" />
+          )}
+
+          {/* Button */}
+          <Button
+            onClick={handleGenerate}
+            className="w-full bg-white text-black hover:bg-neutral-200"
+            disabled={loading}
+          >
+            {loading ? "Processing..." : "Generate Video"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
-
-export default App;
