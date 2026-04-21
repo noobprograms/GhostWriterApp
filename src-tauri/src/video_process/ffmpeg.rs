@@ -10,7 +10,7 @@ pub async fn assemble_video(
             "-framerate",
             "30",
             "-i",
-            "frames/frame_%04d.png",
+            "../frames/frame_%04d.png",
             "-c:v",
             "libx264",
             "-pix_fmt",
@@ -36,7 +36,7 @@ pub async fn extract_frames(
             input,
             "-qscale:v",
             "2",
-            "frames/frame_%04d.png",
+            "../frames/frame_%04d.png",
         ])
         .output()
         .await?;
@@ -51,8 +51,12 @@ pub async fn image_to_video(
 ) -> anyhow::Result<String> {
     let sidecar = app.shell().sidecar("ffmpeg").map_err(|e| anyhow::anyhow!("Failed to create sidecar: {}", e))?;
     println!("Converting image {} to video...", input);
-    let output = "temp_input.mp4";
+    let output = "../temp_input.mp4";
     println!("Output video will be saved as: {}", output);
+    //if a temp video already exists. we have to overwrite it because ffmpeg will fail if the output file already exists
+    if std::path::Path::new(output).exists() {
+        std::fs::remove_file(output).map_err(|e| anyhow::anyhow!("Failed to remove existing temp video: {}", e))?;
+    }
     sidecar
         .args([
             "-loop", "1",
@@ -65,6 +69,7 @@ pub async fn image_to_video(
         .output()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to convert image to video: {}", e))?;
+    
     println!("Image converted to video successfully: {}", output);
     Ok(output.to_string())
 }

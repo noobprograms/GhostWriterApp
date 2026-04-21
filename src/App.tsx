@@ -14,6 +14,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core"
+import { Switch } from "./components/ui/switch";
+import { Label } from "./components/ui/label";
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [script, setScript] = useState("");
@@ -21,7 +23,7 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filePath, setFilePath] = useState<string | null>(null);
-
+  const [shouldDrawGlow, setShouldDrawGlow] = useState(false);
   const handlePickFile = async () => {
     const selected = await open({
       multiple: false,
@@ -67,6 +69,7 @@ export default function App() {
       input: filePath,
       script,
       output: outputPath,
+      shouldDrawGlow: shouldDrawGlow,
     })
 
     setProgress(100)
@@ -80,8 +83,8 @@ export default function App() {
 }
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl bg-neutral-900 border-neutral-800">
+    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
+      <Card className="w-full max-w-2xl bg-red-900 border-neutral-800">
         <CardContent className="space-y-6 p-6">
           {/* Title */}
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -125,6 +128,15 @@ export default function App() {
                 <SelectItem value="horror">Horror</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          {/* Glow Effect */}
+          <div className="space-y-2">
+            <Label htmlFor="glow-switch">Toggle Glow Effect</Label>
+            <Switch
+              id="glow-switch"
+              checked={shouldDrawGlow}
+              onCheckedChange={setShouldDrawGlow}
+            />
           </div>
 
           {/* Progress */}

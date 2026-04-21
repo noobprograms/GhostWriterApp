@@ -11,8 +11,9 @@ async fn process_video(
     input: String,
     script: String,
     output: String,
+    should_draw_glow: bool,
 ) -> Result<String, String> {
-    video_process::pipeline::process_video(app, &input, &script, &output)
+    video_process::pipeline::process_video(app, &input, &script, &output, &should_draw_glow)
         .await
         .map_err(|e| e.to_string())?;
 
