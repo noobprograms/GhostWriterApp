@@ -22,16 +22,21 @@ pub async fn process_video(
     script_str: &str,
     output: &str,
     should_draw_glow: &bool,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Vec<u8>> {
     println!("Starting video processing with input: {}, script: {}, output: {}", input, script_str, output);
     //if input is an image convert that to video with ffmpeg and just return 
     let mut temp_video_path = input;
     if is_image(input) {
         println!("Input is an image, converting to video...");
 
-        let mut temp_video = ffmpeg::image_to_video(&app, input).await?;
+        let temp_video = ffmpeg::image_to_video(&app, input).await?;
         temp_video_path = &temp_video;
-        return Ok(());
+        // read the temp video, return bytes and remove the temp file
+        let data = std::fs::read(&temp_video_path)?;
+        if std::path::Path::new(&temp_video_path).exists() {
+            let _ = std::fs::remove_file(&temp_video_path);
+        }
+        return Ok(data);
     }
     std::fs::create_dir_all("../frames")?;
     println!("Extracting frames from video...{}", temp_video_path);
@@ -63,8 +68,13 @@ pub async fn process_video(
     }
     println!("All frames rendered successfully, assembling video...");
     ffmpeg::assemble_video(&app, output).await?;
-    // Clean up frames
+    // read assembled output into memory
+    let data = std::fs::read(output)?;
+    // Clean up frames and output file
     std::fs::remove_dir_all("../frames")?;
+    if std::path::Path::new(output).exists() {
+        let _ = std::fs::remove_file(output);
+    }
     println!("Video assembled successfully.");
-    Ok(())
+    Ok(data)
 }

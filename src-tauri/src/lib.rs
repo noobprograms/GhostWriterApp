@@ -13,11 +13,13 @@ async fn process_video(
     output: String,
     should_draw_glow: bool,
 ) -> Result<String, String> {
-    video_process::pipeline::process_video(app, &input, &script, &output, &should_draw_glow)
+    let bytes = video_process::pipeline::process_video(app, &input, &script, &output, &should_draw_glow)
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok("done".into())
+    // encode bytes as base64 string to send to frontend
+    let encoded = base64::encode(&bytes);
+    Ok(encoded)
 }
 
 pub fn run() {

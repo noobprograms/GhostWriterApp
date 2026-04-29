@@ -28,4 +28,6 @@ imageproc = "0.26.1"
 anyhow = "1.0.102"
 tauri-plugin-shell = "2.3.5"
 ab_glyph = "0.2.32"
+fs = "0.0.5"
+base64 = "0.21.0"
 
