@@ -9,8 +9,10 @@ pub fn render_frame(
     lines: &[Line],
     current_time: f32,
     font: &FontRef,
+    draw_glow: &bool,
 ) {
     for line in lines {
+        println!("Checking line '{}' at time {:.2}s against current time {:.2}s", line.text, line.time, current_time);
         if current_time >= line.time {
             let progress = ((current_time - line.time) / 2.0).clamp(0.0, 1.0);
 
@@ -19,7 +21,7 @@ pub fn render_frame(
 
             let text = &line.text[..visible_len.min(line.text.len())];
 
-            draw_glow_text(img, text, 50, 100, font);
+            draw_glow_text(img, text, 50, 100, font, draw_glow);
         }
     }
 }
@@ -30,30 +32,34 @@ fn draw_glow_text(
     x: i32,
     y: i32,
     font: &FontRef,
+    draw_glow: &bool,
 ) {
     let scale = PxScale::from(42.0);
-
+    println!("Drawing text '{}' at position ({}, {}) with scale {}", text, x, y, scale.x);
     // glow layers (fake blur)
-    for offset in [-2, -1, 1, 2] {
-        draw_text_mut(
-            img,
-            Rgba([255, 255, 255, 40]),
-            x + offset,
-            y,
-            scale,
-            font,
-            text,
-        );
+    //we should be able to turn this on and off with a setting in the future
+    if *draw_glow {
+        for offset in [-2, -1, 1, 2] {
+            draw_text_mut(
+                img,
+                Rgba([255, 255, 255, 40]),
+                x + offset,
+                y,
+                scale,
+                font,
+                text,
+            );
 
-        draw_text_mut(
-            img,
-            Rgba([255, 255, 255, 40]),
-            x,
-            y + offset,
-            scale,
-            font,
-            text,
-        );
+            draw_text_mut(
+                img,
+                Rgba([255, 255, 255, 40]),
+                x,
+                y + offset,
+                scale,
+                font,
+                text,
+            );
+        }
     }
 
     // main text
@@ -66,4 +72,5 @@ fn draw_glow_text(
         font,
         text,
     );
+    println!("Text drawn successfully.");
 }

@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -14,14 +14,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core"
+import { Switch } from "./components/ui/switch";
+import { Label } from "./components/ui/label";
 export default function App() {
-  const [file, setFile] = useState<File | null>(null);
   const [script, setScript] = useState("");
   const [style, setStyle] = useState("ghost");
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filePath, setFilePath] = useState<string | null>(null);
-
+  const [shouldDrawGlow, setShouldDrawGlow] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const handlePickFile = async () => {
     const selected = await open({
       multiple: false,
@@ -37,11 +39,12 @@ export default function App() {
       setFilePath(selected);
     }
   };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setFile(e.target.files[0]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
-  };
+  }, [previewUrl])
 
   const handleGenerate = async () => {
   if (!filePath) {
@@ -63,14 +66,30 @@ export default function App() {
       style,
       output: outputPath,
     })
-    await invoke("process_video", {
+    // invoke backend which now returns base64-encoded video bytes
+    const base64: string = await invoke("process_video", {
       input: filePath,
       script,
       output: outputPath,
-    })
+      shouldDrawGlow: shouldDrawGlow,
+    }) as string
 
-    setProgress(100)
-    alert("Done! Output saved at:\n" + outputPath)
+    try {
+      const binaryString = atob(base64)
+      const len = binaryString.length
+      const bytes = new Uint8Array(len)
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const blob = new Blob([bytes], { type: "video/mp4" })
+      const url = URL.createObjectURL(blob)
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(url)
+      setProgress(100)
+    } catch (decodeErr) {
+      console.error("Failed to decode returned video:", decodeErr)
+      alert("Done! (but preview failed)")
+    }
   } catch (err) {
     console.error(err)
     alert("Something went wrong")
@@ -80,23 +99,26 @@ export default function App() {
 }
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl bg-neutral-900 border-neutral-800">
-        <CardContent className="space-y-6 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-center p-6">
+      <Card className="w-full max-w-3xl bg-transparent border-0 shadow-xl">
+        <CardContent className="space-y-6 p-8 bg-neutral-900/60 backdrop-blur rounded-xl border border-neutral-800">
           {/* Title */}
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-3xl font-bold text-white tracking-tight">
             GhostText Studio
           </h1>
 
           {/* Upload */}
-          <div className="space-y-2">
-            <Button onClick={handlePickFile}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <Button onClick={handlePickFile} className="flex-shrink-0">
               {filePath ? "Change File" : "Select File"}
             </Button>
-
-            {filePath && (
-              <p className="text-xs text-neutral-400 truncate">{filePath}</p>
-            )}
+            <div className="flex-1 min-w-0">
+              {filePath ? (
+                <p className="text-sm text-neutral-300 truncate">{filePath}</p>
+              ) : (
+                <p className="text-sm text-neutral-500">No file selected</p>
+              )}
+            </div>
           </div>
 
           {/* Script */}
@@ -108,7 +130,7 @@ export default function App() {
               placeholder={`[2.0] I shouldn't be here...\n[5.0] but I had to come.`}
               value={script}
               onChange={(e) => setScript(e.target.value)}
-              className="bg-neutral-800 border-neutral-700 min-h-[120px]"
+              className="bg-neutral-800 border-neutral-700 min-h-[120px] text-white"
             />
           </div>
 
@@ -126,20 +148,39 @@ export default function App() {
               </SelectContent>
             </Select>
           </div>
+          {/* Glow Effect */}
+          <div className="space-y-2">
+            <Label htmlFor="glow-switch" className="text-white">Toggle Glow Effect</Label>
+            <Switch
+              id="glow-switch"
+              checked={shouldDrawGlow}
+              onCheckedChange={setShouldDrawGlow}
+            />
+          </div>
 
           {/* Progress */}
           {loading && (
-            <Progress value={progress} className="h-2 bg-neutral-800" />
+            <Progress value={progress} className="h-2 bg-emerald-500/80" />
           )}
 
           {/* Button */}
           <Button
             onClick={handleGenerate}
-            className="w-full bg-white text-black hover:bg-neutral-200"
+            className="w-full bg-emerald-500 text-black hover:bg-emerald-400"
             disabled={loading}
           >
             {loading ? "Processing..." : "Generate Video"}
           </Button>
+
+          {/* Preview */}
+          {previewUrl && (
+            <div className="mt-4">
+              <h2 className="text-sm text-neutral-300 mb-2">Preview</h2>
+              <div className="w-full bg-black rounded-md overflow-hidden">
+                <video src={previewUrl} controls className="w-full h-auto" />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
